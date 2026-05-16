@@ -1,0 +1,159 @@
+/* Data Import Plus - Preview & Fix styling */
+
+.dip-wrapper {
+	padding: 12px 0;
+}
+
+.dip-setup {
+	max-width: 480px;
+	margin: 24px auto;
+	padding: 28px;
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	background: var(--card-bg);
+}
+
+.dip-setup h4 {
+	margin-bottom: 18px;
+}
+
+.dip-setup .dip-doctype-field {
+	margin-bottom: 16px;
+}
+
+.dip-hint {
+	margin-top: 10px;
+	font-size: var(--text-sm);
+}
+
+/* --- Grid header / toolbar --- */
+.dip-grid-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.dip-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.dip-legend {
+	display: flex;
+	gap: 16px;
+	font-size: var(--text-sm);
+	color: var(--text-muted);
+	margin-top: 4px;
+}
+
+.dip-swatch {
+	display: inline-block;
+	width: 12px;
+	height: 12px;
+	border-radius: 3px;
+	margin-right: 5px;
+	vertical-align: middle;
+	border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.dip-sw-dup { background: #f5a3a3; }
+.dip-sw-mand { background: #f6b352; }
+.dip-sw-link { background: #f4d03f; }
+
+.dip-summary {
+	width: 100%;
+	margin: 12px 0;
+	display: flex;
+	gap: 20px;
+	font-size: var(--text-md);
+}
+
+.dip-no-errors b { color: var(--green-600); }
+.dip-has-errors b { color: var(--red-600); }
+
+.dip-ignored {
+	margin-bottom: 8px;
+	font-size: var(--text-sm);
+}
+
+/* --- The editable grid --- */
+.dip-table {
+	font-size: var(--text-sm);
+	background: var(--card-bg);
+}
+
+.dip-table th {
+	white-space: nowrap;
+	background: var(--subtle-fg, #f4f5f6);
+}
+
+.dip-table td {
+	padding: 0;
+	vertical-align: middle;
+}
+
+.dip-rownum {
+	width: 44px;
+	text-align: center;
+	color: var(--text-muted);
+	padding: 4px !important;
+}
+
+.dip-rowact {
+	width: 90px;
+	text-align: center;
+	padding: 4px !important;
+}
+
+.dip-cell-input {
+	width: 100%;
+	border: none;
+	background: transparent;
+	color: inherit;
+	padding: 6px 8px;
+	outline: none;
+}
+
+.dip-cell-input:focus {
+	box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+/* --- Validation colour coding ---
+ * Backgrounds are deliberately strong and paired with dark text so the
+ * cell values stay readable in both light and dark themes. */
+.dip-row-duplicate td {
+	background: #f5a3a3 !important;
+	color: #2b0a0a !important;
+}
+
+.dip-cell-mandatory {
+	background: #f6b352 !important;
+	color: #3a2400 !important;
+}
+
+.dip-cell-link {
+	background: #f4d03f !important;
+	color: #3a3000 !important;
+}
+
+/* Force the editable inputs inside flagged cells to use the dark text
+ * colour too (they would otherwise inherit the theme's light colour). */
+.dip-row-duplicate td .dip-cell-input,
+.dip-cell-mandatory .dip-cell-input,
+.dip-cell-link .dip-cell-input {
+	color: inherit !important;
+	font-weight: 500;
+}
+
+.dip-row-skipped td {
+	background: #d4d7da !important;
+	color: #4a4f55 !important;
+	opacity: 0.85;
+	text-decoration: line-through;
+}
+
+.dip-row-skipped td .dip-cell-input {
+	color: #4a4f55 !important;
+}

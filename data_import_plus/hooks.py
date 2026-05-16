@@ -25,8 +25,20 @@ app_license = "mit"
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/data_import_plus/css/data_import_plus.css"
+app_include_css = "/assets/data_import_plus/css/data_import_plus.css"
 # app_include_js = "/assets/data_import_plus/js/data_import_plus.js"
+
+# Add the "Import with Preview" button to supported list views.
+doctype_list_js = {
+	"Item": "public/js/import_with_preview.js",
+	"Customer": "public/js/import_with_preview.js",
+	"Supplier": "public/js/import_with_preview.js",
+}
+
+# Replace the built-in Data Import tool with Data Import Plus.
+doctype_js = {
+	"Data Import": "public/js/data_import_override.js",
+}
 
 # include js, css files in header of web template
 # web_include_css = "/assets/data_import_plus/css/data_import_plus.css"

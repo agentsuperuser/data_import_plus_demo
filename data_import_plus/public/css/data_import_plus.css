@@ -21,9 +21,34 @@
 	margin-bottom: 16px;
 }
 
+.dip-setup-actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
 .dip-hint {
 	margin-top: 10px;
 	font-size: var(--text-sm);
+}
+
+/* --- Download Template dialog --- */
+.dip-tpl-toolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.dip-tpl-search {
+	max-width: 220px;
+}
+
+.dip-tpl-btns {
+	display: flex;
+	gap: 6px;
 }
 
 /* --- Grid header / toolbar --- */

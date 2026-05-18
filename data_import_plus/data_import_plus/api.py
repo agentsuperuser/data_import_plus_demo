@@ -10,6 +10,7 @@ validate_data          : re-run validation on edited grid rows
 execute_import         : insert clean rows and write a Data Import Log
 """
 
+import csv
 import io
 import json
 
@@ -20,6 +21,7 @@ from frappe import _
 from data_import_plus.data_import_plus.doctype_config import (
 	get_supported_doctypes as _supported,
 	get_unique_field,
+	is_supported,
 )
 
 # Fieldtypes that never carry an importable value.
@@ -188,11 +190,97 @@ def get_supported_doctypes():
 	return _supported()
 
 
+def _template_fields(target_doctype):
+	"""Importable fields for a template — meta order, each with a reqd flag.
+
+	Skips layout / no-value fieldtypes, hidden, read-only and virtual fields.
+	The autoname `field:` target (e.g. Item Code) is reported as required.
+	"""
+	meta = frappe.get_meta(target_doctype)
+	autoname = (meta.autoname or "").strip()
+	autoname_field = (
+		autoname.split(":", 1)[1].strip() if autoname.startswith("field:") else None
+	)
+	fields = []
+	for df in meta.fields:
+		if df.fieldtype in NO_VALUE_FIELDTYPES or not df.fieldname:
+			continue
+		if df.hidden or df.read_only or getattr(df, "is_virtual", 0):
+			continue
+		fields.append({
+			"fieldname": df.fieldname,
+			"label": df.label or df.fieldname,
+			"reqd": int(bool(df.reqd) or df.fieldname == autoname_field),
+		})
+	return fields
+
+
+def _template_headers(target_doctype, selected=None):
+	"""Column headers (exact field labels) for an import template.
+
+	`selected` - optional list of fieldnames to include. When given, only
+	those fields are used (kept in doctype meta order). When omitted, every
+	importable field is used with mandatory fields first. Labels are used as
+	headers so a filled-in template re-uploads cleanly through `_columns_for`.
+	"""
+	fields = _template_fields(target_doctype)
+	if selected:
+		wanted = set(selected)
+		fields = [f for f in fields if f["fieldname"] in wanted]
+	else:
+		# Stable sort keeps meta order within the mandatory / optional groups.
+		fields = sorted(fields, key=lambda f: 0 if f["reqd"] else 1)
+	return [f["label"] for f in fields]
+
+
+@frappe.whitelist()
+def get_importable_fields(target_doctype):
+	"""Return [{fieldname, label, reqd}] for the field-selection dialog."""
+	if not is_supported(target_doctype):
+		frappe.throw(_("Doctype {0} does not allow data import").format(target_doctype))
+	return _template_fields(target_doctype)
+
+
+@frappe.whitelist()
+def download_template(target_doctype, file_type="Excel", fields=None):
+	"""Stream a blank import template (headers only) for the doctype.
+
+	`fields` - optional JSON list of fieldnames chosen in the dialog; when
+	omitted the template includes every importable field.
+	"""
+	if not is_supported(target_doctype):
+		frappe.throw(_("Doctype {0} does not allow data import").format(target_doctype))
+
+	selected = None
+	if fields:
+		selected = fields if isinstance(fields, list) else json.loads(fields)
+
+	headers = _template_headers(target_doctype, selected)
+	if not headers:
+		frappe.throw(_("Select at least one field for the template."))
+	base = target_doctype.replace(" ", "_") + "_template"
+
+	if str(file_type).lower() in ("csv", ".csv"):
+		buffer = io.StringIO()
+		csv.writer(buffer).writerow(headers)
+		content = buffer.getvalue().encode("utf-8")
+		filename = base + ".csv"
+	else:
+		buffer = io.BytesIO()
+		pd.DataFrame(columns=headers).to_excel(buffer, index=False, engine="openpyxl")
+		content = buffer.getvalue()
+		filename = base + ".xlsx"
+
+	frappe.response["filename"] = filename
+	frappe.response["filecontent"] = content
+	frappe.response["type"] = "binary"
+
+
 @frappe.whitelist()
 def parse_file(file_url, target_doctype):
 	"""Read an uploaded file with Pandas and return columns + validated rows."""
-	if target_doctype not in _supported():
-		frappe.throw(_("Doctype {0} is not supported by Data Import Plus").format(target_doctype))
+	if not is_supported(target_doctype):
+		frappe.throw(_("Doctype {0} does not allow data import").format(target_doctype))
 
 	file_doc = frappe.get_doc("File", {"file_url": file_url})
 	content = file_doc.get_content()

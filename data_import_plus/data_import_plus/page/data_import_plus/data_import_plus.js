@@ -47,31 +47,133 @@ class DataImportPlus {
 			<div class="dip-setup">
 				<h4>${__("Step 1 · Choose a target & upload a file")}</h4>
 				<div class="dip-doctype-field"></div>
-				<button class="btn btn-primary dip-upload-btn">
-					${frappe.utils.icon("upload", "sm")} ${__("Upload Excel / CSV")}
-				</button>
-				<p class="text-muted dip-hint">${__("Accepted formats: .xlsx, .xls, .csv")}</p>
+				<div class="dip-setup-actions">
+					<button class="btn btn-default dip-template-btn">
+						${frappe.utils.icon("download", "sm")} ${__("Download Template")}
+					</button>
+					<button class="btn btn-primary dip-upload-btn">
+						${frappe.utils.icon("upload", "sm")} ${__("Upload Excel / CSV")}
+					</button>
+				</div>
+				<p class="text-muted dip-hint">${__("Download a blank template, fill it in, then upload. Accepted formats: .xlsx, .xls, .csv")}</p>
 			</div>
 		`).appendTo(this.body);
 
 		this.doctype_field = frappe.ui.form.make_control({
 			parent: setup.find(".dip-doctype-field"),
 			df: {
-				fieldtype: "Select",
+				fieldtype: "Link",
 				fieldname: "target_doctype",
 				label: __("Import Into"),
-				options: [],
+				options: "DocType",
 				reqd: 1,
+				// Same set the standard Data Import tool offers.
+				get_query: () => ({
+					filters: { allow_import: 1, istable: 0, issingle: 0 },
+				}),
 			},
 			render_input: true,
 		});
-
-		frappe.call("data_import_plus.data_import_plus.api.get_supported_doctypes").then((r) => {
-			this.doctype_field.df.options = ["", ...(r.message || [])];
-			this.doctype_field.refresh();
-		});
+		this.doctype_field.refresh();
 
 		setup.find(".dip-upload-btn").on("click", () => this.open_uploader());
+		setup.find(".dip-template-btn").on("click", () => this.download_template());
+	}
+
+	download_template() {
+		const target = this.doctype_field.get_value();
+		if (!target) {
+			frappe.msgprint(__("Please choose a target doctype first."));
+			return;
+		}
+		frappe
+			.call({
+				method: "data_import_plus.data_import_plus.api.get_importable_fields",
+				args: { target_doctype: target },
+			})
+			.then((r) => {
+				if (r.message) this.open_template_dialog(target, r.message);
+			});
+	}
+
+	// Field-selection dialog — pick which columns the template should contain.
+	open_template_dialog(target, fields) {
+		const options = fields.map((f) => ({
+			label: f.label,
+			value: f.fieldname,
+			danger: !!f.reqd, // mandatory fields render in red
+			checked: !!f.reqd, // ...and are pre-selected
+			description: f.reqd ? __("Mandatory") : f.fieldname,
+		}));
+
+		const dialog = new frappe.ui.Dialog({
+			title: __("Download Template — {0}", [target]),
+			fields: [
+				{
+					fieldname: "file_type",
+					label: __("File Type"),
+					fieldtype: "Select",
+					options: ["Excel", "CSV"],
+					default: "Excel",
+				},
+				{ fieldtype: "Section Break" },
+				{ fieldname: "toolbar", fieldtype: "HTML" },
+				{
+					fieldname: "fields",
+					label: __(target),
+					fieldtype: "MultiCheck",
+					columns: 2,
+					sort_options: false,
+					options: options,
+				},
+			],
+			primary_action_label: __("Download"),
+			primary_action: (values) => {
+				const selected = dialog.get_field("fields").get_checked_options();
+				if (!selected.length) {
+					frappe.msgprint(__("Select at least one field for the template."));
+					return;
+				}
+				const url =
+					"/api/method/data_import_plus.data_import_plus.api.download_template" +
+					"?target_doctype=" +
+					encodeURIComponent(target) +
+					"&file_type=" +
+					encodeURIComponent(values.file_type || "Excel") +
+					"&fields=" +
+					encodeURIComponent(JSON.stringify(selected));
+				window.open(url, "_blank");
+				dialog.hide();
+			},
+		});
+
+		// Toolbar — search box + Select All / Mandatory / Unselect All.
+		const picker = dialog.get_field("fields");
+		const $toolbar = dialog.get_field("toolbar").$wrapper;
+		$toolbar.html(`
+			<div class="dip-tpl-toolbar">
+				<input type="text" class="form-control input-xs dip-tpl-search"
+					placeholder="${__("Search fields...")}">
+				<div class="dip-tpl-btns">
+					<button class="btn btn-default btn-xs" data-act="all">${__("Select All")}</button>
+					<button class="btn btn-default btn-xs" data-act="mand">${__("Select Mandatory")}</button>
+					<button class="btn btn-default btn-xs" data-act="none">${__("Unselect All")}</button>
+				</div>
+			</div>
+		`);
+		$toolbar.find('[data-act="all"]').on("click", () => picker.select_all());
+		$toolbar.find('[data-act="none"]').on("click", () => picker.select_all(true));
+		$toolbar.find('[data-act="mand"]').on("click", () => {
+			picker.select_options(options.filter((o) => o.danger).map((o) => o.value));
+		});
+		$toolbar.find(".dip-tpl-search").on("input", function () {
+			const q = (this.value || "").toLowerCase();
+			picker.$wrapper.find(".checkbox").each(function () {
+				$(this).toggle($(this).text().toLowerCase().indexOf(q) !== -1);
+			});
+		});
+
+		dialog.show();
 	}
 
 	open_uploader() {

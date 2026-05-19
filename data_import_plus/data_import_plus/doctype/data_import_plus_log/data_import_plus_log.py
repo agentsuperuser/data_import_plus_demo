@@ -5,5 +5,5 @@ import frappe
 from frappe.model.document import Document
 
 
-class DataImportLog(Document):
+class DataImportPlusLog(Document):
 	pass

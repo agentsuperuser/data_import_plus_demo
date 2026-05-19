@@ -409,7 +409,7 @@ class DataImportPlus {
 								indicator: "green",
 								message: `${r.message.message}.<br>
 									${__("Audit log")}:
-									<a href="/app/data-import-log/${r.message.log}">${r.message.log}</a>`,
+									<a href="/app/data-import-plus-log/${r.message.log}">${r.message.log}</a>`,
 							});
 							this.render_setup();
 						}

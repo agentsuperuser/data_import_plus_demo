@@ -385,7 +385,7 @@ def execute_import(target_doctype, rows, original_file_url=None, original_file_n
 	if errors:
 		frappe.db.commit()
 		frappe.throw(
-			_("Imported {0}, but {1} row(s) failed. See Data Import Log {2}.").format(
+			_("Imported {0}, but {1} row(s) failed. See Data Import Plus Log {2}.").format(
 				len(imported), len(errors), log
 			)
 		)
@@ -403,10 +403,10 @@ def execute_import(target_doctype, rows, original_file_url=None, original_file_n
 # ---------------------------------------------------------------------------
 def _create_log(target_doctype, total, imported, skipped, errors, field_names,
 		original_file_url, original_file_name):
-	"""Create the Data Import Log and attach the original + cleaned files."""
+	"""Create the Data Import Plus Log and attach the original + cleaned files."""
 	from frappe.utils.file_manager import save_file
 
-	log = frappe.new_doc("Data Import Log")
+	log = frappe.new_doc("Data Import Plus Log")
 	log.target_doctype = target_doctype
 	log.import_date = frappe.utils.now()
 	log.status = "Failed" if errors else "Completed"
@@ -424,7 +424,7 @@ def _create_log(target_doctype, total, imported, skipped, errors, field_names,
 		file_name = frappe.db.get_value("File", {"file_url": original_file_url})
 		if file_name:
 			fdoc = frappe.get_doc("File", file_name)
-			fdoc.attached_to_doctype = "Data Import Log"
+			fdoc.attached_to_doctype = "Data Import Plus Log"
 			fdoc.attached_to_name = log.name
 			fdoc.save(ignore_permissions=True)
 
@@ -437,7 +437,7 @@ def _create_log(target_doctype, total, imported, skipped, errors, field_names,
 		cleaned = save_file(
 			f"{base}_cleaned.xlsx",
 			buffer.getvalue(),
-			"Data Import Log",
+			"Data Import Plus Log",
 			log.name,
 			is_private=1,
 		)
